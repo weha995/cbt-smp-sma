@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Bootstrap CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- MathJax untuk LaTeX -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']],
+          processEscapes: true
+        }
+      };
+    </script>
+    
+    <!-- Include CSS -->
+    <?!= include('CSS'); ?>
+  </head>
+  <body>
+    <div class="container main-container">
+      <div id="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Memuat Aplikasi CBT...</p>
+      </div>
+      
+      <!-- Halaman Biodata -->
+      <div id="biodata-page" class="page-container" style="display:none;">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white text-center">
+            <h2>Aplikasi CBT Online</h2>
+          </div>
+          <div class="card-body">
+            <form id="biodata-form">
+              <div class="mb-3">
+                <label for="nama" class="form-label">Nama Lengkap:</label>
+                <input type="text" class="form-control" id="nama" name="nama" required>
+              </div>
+              <div class="mb-3">
+                <label for="sekolah" class="form-label">Asal Sekolah:</label>
+                <input type="text" class="form-control" id="sekolah" name="sekolah" required>
+              </div>
+              <div class="mb-3">
+                <label for="jenjang" class="form-label">Jenjang Pendidikan:</label>
+                <select class="form-select" id="jenjang" name="jenjang" required>
+                  <option value="">-- Pilih Jenjang --</option>
+                  <option value="SMP">SMP/MTs/Sederajat</option>
+                  <option value="SMA">SMA/MA/SMK/Sederajat</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="kelas" class="form-label">Kelas:</label>
+                <select class="form-select" id="kelas" name="kelas" required disabled>
+                  <option value="">-- Pilih Jenjang Dulu --</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="rombel" class="form-label">Rombongan Belajar:</label>
+                <select class="form-select" id="rombel" name="rombel" required>
+                  <option value="">-- Pilih Rombel --</option>
+                  <option value="A">1/A</option>
+                  <option value="B">2/B</option>
+                  <option value="C">3/C</option>
+                  <option value="D">4/D</option>
+                  <option value="E">5/E</option>
+                  <option value="F">6/F</option>
+                  <option value="G">7/G</option>
+                  <option value="H">8/H</option>
+                  <option value="I">9/I</option>
+                  <option value="J">10/J</option>
+                  <option value="K">11/K</option>
+                  <option value="L">12/L</option>
+                  <option value="M">13/M</option>
+                  <option value="N">14/N</option>
+                  <option value="O">15/O</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="no_wa" class="form-label">Nomor WhatsApp:</label>
+                <div class="input-group">
+                  <span class="input-group-text">62</span>
+                  <input type="tel" class="form-control" id="no_wa" name="no_wa" placeholder="8123456789" required>
+                </div>
+                <div class="form-text">Masukkan nomor tanpa awalan 0, contoh: 8123456789</div>
+              </div>
+              <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Lanjut ke Petunjuk</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Halaman Petunjuk -->
+      <div id="petunjuk-page" class="page-container" style="display:none;">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white text-center">
+            <h2>Petunjuk Ujian</h2>
+          </div>
+          <div class="card-body">
+            <div id="petunjuk-content" class="mb-4"></div>
+            <div class="alert alert-info">
+              <div class="d-flex align-items-center">
+                <div class="me-3"><i class="bi bi-clock"></i></div>
+                <div>Durasi ujian: <strong id="durasi-ujian">60 menit</strong></div>
+              </div>
+            </div>
+            <div class="form-check mt-3">
+              <input class="form-check-input" type="checkbox" id="agreement">
+              <label class="form-check-label" for="agreement">
+                Saya telah membaca dan memahami petunjuk ujian
+              </label>
+            </div>
+            <div class="text-center mt-4">
+              <button id="mulai-btn" class="btn btn-primary btn-lg" disabled>Mulai Ujian</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Halaman Soal akan dimuat dari Soal.html -->
+      <div id="soal-page" class="page-container" style="display:none;"></div>
+      
+      <!-- Halaman Hasil akan dimuat dari Hasil.html -->
+      <div id="hasil-page" class="page-container" style="display:none;"></div>
+      
+      <!-- Halaman Terima Kasih -->
+      <div id="thanks-page" class="page-container" style="display:none;">
+        <div class="card shadow">
+          <div class="card-header bg-success text-white text-center">
+            <h2>Terima Kasih</h2>
+          </div>
+          <div class="card-body text-center">
+            <div class="mb-4">
+              <i class="bi bi-check-circle" style="font-size: 4rem; color: #28a745;"></i>
+            </div>
+            <h3>Ujian Anda telah selesai!</h3>
+            <p class="lead" id="thanks-message">Terima kasih telah mengikuti ujian. Hasil akan dirilis nanti.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Include JavaScript -->
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>
