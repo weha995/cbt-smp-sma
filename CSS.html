@@ -1,0 +1,172 @@
+<style>
+  body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .main-container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 0 15px;
+  }
+  
+  .card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    border-radius: 10px 10px 0 0;
+    padding: 15px;
+  }
+  
+  .card-body {
+    padding: 25px;
+  }
+  
+  /* Petunjuk styling */
+  #petunjuk-content {
+    text-align: justify;
+  }
+  
+  /* Soal styling */
+  .soal-content {
+    text-align: justify;
+    margin-bottom: 20px;
+  }
+  
+  .soal-gambar {
+    text-align: center;
+    margin: 15px 0;
+  }
+  
+  .soal-gambar img {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .soal-tabel {
+    text-align: center;
+    margin: 15px 0;
+    overflow-x: auto;
+  }
+  
+  .soal-tabel table {
+    margin: 0 auto;
+    border-collapse: collapse;
+  }
+  
+  .soal-tabel th, .soal-tabel td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  
+  .pilihan-container {
+    margin-top: 20px;
+  }
+  
+  .pilihan-item {
+    display: block;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border: 2px solid #e9ecef;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: justify;
+    transition: all 0.2s ease;
+  }
+  
+  .pilihan-item:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+  
+  .pilihan-selected {
+    border-color: #007bff;
+    background-color: #e7f5ff;
+  }
+  
+  /* Timer */
+  #timer-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+  }
+  
+  .timer-warning {
+    color: #dc3545;
+    animation: blink 1s infinite;
+  }
+  
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  /* Navigasi soal */
+  .soal-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  
+  .nomor-soal-btn {
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    border-radius: 50%;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .nomor-belum {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .nomor-sudah {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  /* Print styles */
+  @media print {
+    body {
+      background: white;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+    
+    .main-container {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .card {
+      box-shadow: none;
+      border: 1px solid #ddd;
+    }
+  }
+</style>
