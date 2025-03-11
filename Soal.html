@@ -1,0 +1,44 @@
+<!-- Template halaman soal -->
+<div class="card shadow">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h3 id="soal-header" class="h5 mb-0">Soal 1 dari 10</h3>
+    <div id="timer-container">
+      <i class="bi bi-clock"></i> <span id="timer">00:00:00</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Konten soal -->
+    <div class="soal-content">
+      <!-- Gambar soal -->
+      <div id="soal-gambar" class="soal-gambar" style="display:none;"></div>
+      
+      <!-- Tabel soal -->
+      <div id="soal-tabel" class="soal-tabel" style="display:none;"></div>
+      
+      <!-- Paragraf soal -->
+      <div id="soal-paragraf" class="soal-paragraf" style="display:none;"></div>
+      
+      <!-- Pertanyaan soal -->
+      <div id="soal-pertanyaan" class="pertanyaan"></div>
+      
+      <!-- Pilihan jawaban -->
+      <div id="pilihan-container" class="pilihan-container"></div>
+    </div>
+    
+    <!-- Navigasi soal -->
+    <div id="soal-navigation" class="soal-navigation mb-3"></div>
+    
+    <!-- Tombol navigasi -->
+    <div class="d-flex justify-content-between">
+      <button id="prev-btn" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Sebelumnya
+      </button>
+      <button id="finish-btn" class="btn btn-danger">
+        <i class="bi bi-check-circle"></i> Selesai Ujian
+      </button>
+      <button id="next-btn" class="btn btn-secondary">
+        Berikutnya <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
