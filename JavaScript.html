@@ -1,0 +1,489 @@
+<script>
+  // Variabel global
+  let biodataUser = {};
+  let soalList = [];
+  let currentSoal = 0;
+  let jawaban = [];
+  let waktuMulai = null;
+  let timerInterval = null;
+  let konfigurasi = {};
+  
+  // Inisialisasi aplikasi
+  document.addEventListener('DOMContentLoaded', function() {
+    // Muat konfigurasi
+    google.script.run
+      .withSuccessHandler(function(result) {
+        konfigurasi = result;
+        document.getElementById('durasi-ujian').textContent = konfigurasi.durasiUjian + ' menit';
+        document.getElementById('petunjuk-content').innerHTML = konfigurasi.petunjuk || '';
+        
+        // Tampilkan halaman biodata
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('biodata-page').style.display = 'block';
+        
+        // Render LaTeX jika ada
+        if (window.MathJax) {
+          MathJax.typesetPromise && MathJax.typesetPromise();
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error loading config:', error);
+        alert('Terjadi kesalahan saat memuat konfigurasi aplikasi. Silakan refresh halaman.');
+      })
+      .getKonfigurasi();
+      
+    // Setup event untuk jenjang dan kelas
+    document.getElementById('jenjang').addEventListener('change', updateKelasOptions);
+    
+    // Setup event untuk form biodata
+    document.getElementById('biodata-form').addEventListener('submit', submitBiodata);
+    
+    // Setup event untuk checkbox persetujuan
+    document.getElementById('agreement').addEventListener('change', function() {
+      document.getElementById('mulai-btn').disabled = !this.checked;
+    });
+    
+    // Setup event untuk tombol mulai ujian
+    document.getElementById('mulai-btn').addEventListener('click', startUjian);
+  });
+  
+  // Fungsi untuk mengupdate opsi kelas berdasarkan jenjang
+  function updateKelasOptions() {
+    const jenjang = document.getElementById('jenjang').value;
+    const kelasSelect = document.getElementById('kelas');
+    
+    // Reset opsi
+    kelasSelect.innerHTML = '';
+    
+    if (jenjang === 'SMP') {
+      // Opsi untuk SMP
+      kelasSelect.innerHTML = `
+        <option value="">-- Pilih Kelas --</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+      `;
+    } else if (jenjang === 'SMA') {
+      // Opsi untuk SMA
+      kelasSelect.innerHTML = `
+        <option value="">-- Pilih Kelas --</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+      `;
+    } else {
+      kelasSelect.innerHTML = '<option value="">-- Pilih Jenjang Dulu --</option>';
+    }
+    
+    // Enable/disable select
+    kelasSelect.disabled = jenjang === '';
+  }
+  
+  // Fungsi untuk submit biodata
+  function submitBiodata(e) {
+    e.preventDefault();
+    
+    // Tampilkan loading
+    document.getElementById('biodata-page').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    
+    // Ambil data dari form
+    const data = {
+      nama: document.getElementById('nama').value,
+      sekolah: document.getElementById('sekolah').value,
+      jenjang: document.getElementById('jenjang').value,
+      kelas: document.getElementById('kelas').value,
+      rombel: document.getElementById('rombel').value,
+      no_wa: document.getElementById('no_wa').value
+    };
+    
+    // Kirim data ke server
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.success) {
+          biodataUser = result.biodata;
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('petunjuk-page').style.display = 'block';
+        } else {
+          alert(result.message);
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('biodata-page').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error saving biodata:', error);
+        alert('Terjadi kesalahan saat menyimpan biodata. Silakan coba lagi.');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('biodata-page').style.display = 'block';
+      })
+      .simpanBiodata(data);
+  }
+  
+  // Fungsi untuk memulai ujian
+  function startUjian() {
+    // Tampilkan loading
+    document.getElementById('petunjuk-page').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    
+    // Muat soal
+    google.script.run
+      .withSuccessHandler(function(result) {
+        soalList = result;
+        jawaban = new Array(soalList.length).fill('');
+        
+        // Muat template halaman soal
+        google.script.run
+          .withSuccessHandler(function(html) {
+            document.getElementById('soal-page').innerHTML = html;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('soal-page').style.display = 'block';
+            
+            // Setup navigasi soal
+            createSoalNavigation();
+            
+            // Tampilkan soal pertama
+            showSoal(0);
+            
+            // Mulai timer
+            startTimer(parseInt(konfigurasi.durasiUjian) || 60);
+            
+            // Setup tombol navigasi
+            document.getElementById('prev-btn').addEventListener('click', prevSoal);
+            document.getElementById('next-btn').addEventListener('click', nextSoal);
+            document.getElementById('finish-btn').addEventListener('click', finishUjian);
+          })
+          .withFailureHandler(function(error) {
+            console.error('Error loading soal template:', error);
+            alert('Terjadi kesalahan saat memuat template soal. Silakan refresh halaman.');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('petunjuk-page').style.display = 'block';
+          })
+          .include('Soal');
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error loading soal:', error);
+        alert('Terjadi kesalahan saat memuat soal. Silakan refresh halaman.');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('petunjuk-page').style.display = 'block';
+      })
+      .getSoal();
+  }
+  
+  // Fungsi untuk membuat navigasi soal
+  function createSoalNavigation() {
+    const container = document.getElementById('soal-navigation');
+    container.innerHTML = '';
+    
+    for (let i = 0; i < soalList.length; i++) {
+      const button = document.createElement('button');
+      button.className = 'nomor-soal-btn ' + (jawaban[i] ? 'nomor-sudah' : 'nomor-belum');
+      button.textContent = i + 1;
+      button.onclick = function() {
+        showSoal(i);
+      };
+      
+      container.appendChild(button);
+    }
+  }
+  
+  // Fungsi untuk menampilkan soal
+  function showSoal(index) {
+    if (index < 0 || index >= soalList.length) return;
+    
+    currentSoal = index;
+    const soal = soalList[index];
+    
+    // Update header soal
+    document.getElementById('soal-header').textContent = `Soal ${index + 1} dari ${soalList.length}`;
+    
+    // Tampilkan gambar jika ada
+    const gambarContainer = document.getElementById('soal-gambar');
+    if (soal.gambar_url) {
+      gambarContainer.innerHTML = `<img src="${soal.gambar_url}" alt="Gambar soal">`;
+      gambarContainer.style.display = 'block';
+    } else {
+      gambarContainer.style.display = 'none';
+    }
+    
+    // Tampilkan tabel jika ada
+    const tabelContainer = document.getElementById('soal-tabel');
+    if (soal.kode_tabel) {
+      tabelContainer.innerHTML = soal.kode_tabel;
+      tabelContainer.style.display = 'block';
+    } else {
+      tabelContainer.style.display = 'none';
+    }
+    
+    // Tampilkan paragraf jika ada
+    const paragrafContainer = document.getElementById('soal-paragraf');
+    if (soal.paragraf) {
+      paragrafContainer.innerHTML = soal.paragraf;
+      paragrafContainer.style.display = 'block';
+    } else {
+      paragrafContainer.style.display = 'none';
+    }
+    
+    // Tampilkan pertanyaan
+    document.getElementById('soal-pertanyaan').innerHTML = soal.pertanyaan;
+    
+    // Tampilkan pilihan jawaban
+    const pilihanContainer = document.getElementById('pilihan-container');
+    pilihanContainer.innerHTML = '';
+    
+    const pilihan = [
+      { key: 'A', text: soal.pilihan_a },
+      { key: 'B', text: soal.pilihan_b },
+      { key: 'C', text: soal.pilihan_c },
+      { key: 'D', text: soal.pilihan_d }
+    ];
+    
+    // Tambahkan pilihan E jika ada
+    if (soal.pilihan_e) {
+      pilihan.push({ key: 'E', text: soal.pilihan_e });
+    }
+    
+    pilihan.forEach(function(p) {
+      if (p.text) {
+        const isSelected = jawaban[index] === p.key;
+        const div = document.createElement('div');
+        div.className = 'pilihan-item' + (isSelected ? ' pilihan-selected' : '');
+        div.innerHTML = `<strong>${p.key}.</strong> ${p.text}`;
+        div.onclick = function() {
+          selectJawaban(p.key);
+        };
+        
+        pilihanContainer.appendChild(div);
+      }
+    });
+    
+    // Update tombol navigasi
+    document.getElementById('prev-btn').disabled = index === 0;
+    document.getElementById('next-btn').disabled = index === soalList.length - 1;
+    
+    // Update navigasi nomor soal
+    updateSoalNavigation();
+    
+    // Render LaTeX jika ada
+    if (window.MathJax) {
+      MathJax.typesetPromise && MathJax.typesetPromise();
+    }
+  }
+  
+  // Fungsi untuk memilih jawaban
+  function selectJawaban(key) {
+    jawaban[currentSoal] = key;
+    
+    // Update tampilan pilihan
+    const pilihanItems = document.querySelectorAll('.pilihan-item');
+    pilihanItems.forEach(function(item) {
+      if (item.innerHTML.startsWith(`<strong>${key}.`)) {
+        item.classList.add('pilihan-selected');
+      } else {
+        item.classList.remove('pilihan-selected');
+      }
+      });
+    
+    // Update navigasi nomor soal
+    updateSoalNavigation();
+  }
+  
+  // Fungsi untuk update navigasi nomor soal
+  function updateSoalNavigation() {
+    const buttons = document.querySelectorAll('.nomor-soal-btn');
+    
+    for (let i = 0; i < buttons.length; i++) {
+      if (jawaban[i]) {
+        buttons[i].className = 'nomor-soal-btn nomor-sudah';
+      } else {
+        buttons[i].className = 'nomor-soal-btn nomor-belum';
+      }
+    }
+  }
+  
+  // Fungsi navigasi ke soal sebelumnya
+  function prevSoal() {
+    if (currentSoal > 0) {
+      showSoal(currentSoal - 1);
+    }
+  }
+  
+  // Fungsi navigasi ke soal berikutnya
+  function nextSoal() {
+    if (currentSoal < soalList.length - 1) {
+      showSoal(currentSoal + 1);
+    }
+  }
+  
+  // Fungsi untuk memulai timer
+  function startTimer(minutes) {
+    waktuMulai = new Date();
+    const endTime = new Date(waktuMulai.getTime() + minutes * 60000);
+    const timerElement = document.getElementById('timer');
+    
+    timerInterval = setInterval(function() {
+      const now = new Date();
+      const distance = endTime - now;
+      
+      if (distance <= 0) {
+        // Waktu habis
+        clearInterval(timerInterval);
+        timerElement.textContent = "00:00:00";
+        alert("Waktu ujian telah habis! Jawaban Anda akan dikumpulkan secara otomatis.");
+        finishUjian();
+        return;
+      }
+      
+      // Hitung jam, menit, detik
+      const hours = Math.floor(distance / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      // Tampilkan timer
+      timerElement.textContent = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+      
+      // Tambahkan animasi ketika waktu hampir habis (5 menit terakhir)
+      if (distance < 5 * 60 * 1000) {
+        timerElement.classList.add('timer-warning');
+      }
+    }, 1000);
+  }
+  
+  // Pad angka dengan nol di depan jika kurang dari 10
+  function padZero(num) {
+    return num < 10 ? '0' + num : num;
+  }
+  
+  // Fungsi untuk menyelesaikan ujian
+  function finishUjian() {
+    // Konfirmasi jika ada soal yang belum dijawab
+    const belumDijawab = jawaban.filter(j => j === '').length;
+    if (belumDijawab > 0) {
+      const isConfirmed = confirm(`Masih ada ${belumDijawab} soal yang belum dijawab. Yakin ingin menyelesaikan ujian?`);
+      if (!isConfirmed) return;
+    } else {
+      const isConfirmed = confirm('Yakin ingin menyelesaikan ujian?');
+      if (!isConfirmed) return;
+    }
+    
+    // Tampilkan loading
+    document.getElementById('soal-page').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    
+    // Hentikan timer
+    clearInterval(timerInterval);
+    
+    // Hitung durasi pengerjaan dalam detik
+    const now = new Date();
+    const durasiDetik = Math.floor((now - waktuMulai) / 1000);
+    
+    // Kirim hasil ke server
+    google.script.run
+      .withSuccessHandler(function(result) {
+        // Sembunyikan loading
+        document.getElementById('loading').style.display = 'none';
+        
+        // Tampilkan halaman hasil atau terima kasih berdasarkan konfigurasi
+        if (result.showResults) {
+          // Muat template halaman hasil
+          google.script.run
+            .withSuccessHandler(function(html) {
+              document.getElementById('hasil-page').innerHTML = html;
+              
+              // Tampilkan hasil
+              displayHasil(result);
+              
+              // Tampilkan halaman hasil
+              document.getElementById('hasil-page').style.display = 'block';
+              
+              // Setup tombol cetak jika printable
+              if (result.printable) {
+                document.getElementById('print-btn').addEventListener('click', function() {
+                  printHasil(result);
+                });
+              } else {
+                const printBtn = document.getElementById('print-btn');
+                if (printBtn) printBtn.style.display = 'none';
+              }
+            })
+            .include('Hasil');
+        } else {
+          // Tampilkan halaman terima kasih
+          document.getElementById('thanks-message').textContent = konfigurasi.messageBeforeRelease || 'Terima kasih telah mengikuti ujian. Hasil akan dirilis nanti.';
+          document.getElementById('thanks-page').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error saving result:', error);
+        alert('Terjadi kesalahan saat menyimpan hasil ujian. Silakan coba lagi.');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('soal-page').style.display = 'block';
+      })
+      .simpanHasil({
+        biodata: biodataUser,
+        jawaban: jawaban,
+        durasi: durasiDetik
+      });
+  }
+  
+  // Fungsi untuk menampilkan hasil
+  function displayHasil(data) {
+    // Tampilkan biodata
+    document.getElementById('hasil-nama').textContent = data.biodata.nama;
+    document.getElementById('hasil-sekolah').textContent = data.biodata.sekolah;
+    document.getElementById('hasil-jenjang').textContent = data.biodata.jenjang;
+    document.getElementById('hasil-kelas').textContent = data.biodata.kelas;
+    document.getElementById('hasil-rombel').textContent = data.biodata.rombel;
+    
+    // Tampilkan skor dan nilai
+    document.getElementById('hasil-skor').textContent = `${data.skorDiperoleh} dari ${data.totalPoin}`;
+    document.getElementById('hasil-nilai').textContent = data.nilai;
+    
+    // Format durasi
+    const hours = Math.floor(data.durasi / 3600);
+    const minutes = Math.floor((data.durasi % 3600) / 60);
+    const seconds = data.durasi % 60;
+    
+    const durasiFormatted = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+    document.getElementById('hasil-durasi').textContent = durasiFormatted;
+    
+    // Render LaTeX jika ada
+    if (window.MathJax) {
+      MathJax.typesetPromise && MathJax.typesetPromise();
+    }
+  }
+  
+  // Fungsi untuk cetak hasil
+  function printHasil(data) {
+    // Buka jendela baru untuk cetak
+    const printWindow = window.open('', '_blank');
+    
+    // Tampilkan spinner di halaman hasil
+    const printBtn = document.getElementById('print-btn');
+    printBtn.disabled = true;
+    printBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyiapkan...';
+    
+    // Siapkan data untuk cetak PDF
+    google.script.run
+      .withSuccessHandler(function(pdfBytes) {
+        // Buat URL untuk PDF
+        const blob = new Blob([pdfBytes], {type: 'application/pdf'});
+        const url = URL.createObjectURL(blob);
+        
+        // Arahkan jendela cetak ke URL PDF
+        printWindow.location.href = url;
+        
+        // Kembalikan tombol ke keadaan semula
+        printBtn.disabled = false;
+        printBtn.innerHTML = 'Cetak Hasil';
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error generating PDF:', error);
+        alert('Terjadi kesalahan saat membuat PDF. Silakan coba lagi.');
+        
+        printWindow.close();
+        printBtn.disabled = false;
+        printBtn.innerHTML = 'Cetak Hasil';
+      })
+      .generatePDF(data);
+  }
+</script>
